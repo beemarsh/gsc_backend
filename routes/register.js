@@ -37,7 +37,7 @@ router.post(
                 return res.status(201).json({ message: 'User registered successfully' });
             });
         } catch (error) {
-            return next(error); // Pass error to middleware
+            next(error); // Pass error to middleware
         }
     }
 );

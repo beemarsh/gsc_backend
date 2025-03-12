@@ -8,11 +8,10 @@ class RouteError extends Error {
   }
 
 const errorHandler = (err, req, res, next) => {
-    const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
     
-    res.status(statusCode).json({
-        message: err.message,
-        stack: process.env.NODE_ENV === 'production' ? null : err.stack
+    return res.status(err.statusCode).json({
+        details: err.details,
+        stack: process.env.DEBUG === 'False' ? null : err.stack
     });
 };
 
