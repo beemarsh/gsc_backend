@@ -1,3 +1,12 @@
+class RouteError extends Error {
+    constructor(error, statusCode, details) {
+      super(error);
+      this.statusCode = statusCode;
+      this.details = details;
+      this.name = 'CustomError'; // Optional: Set error name
+    }
+  }
+
 const errorHandler = (err, req, res, next) => {
     const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
     
@@ -7,4 +16,4 @@ const errorHandler = (err, req, res, next) => {
     });
 };
 
-module.exports = { errorHandler };
+module.exports = { errorHandler,RouteError};

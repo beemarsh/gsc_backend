@@ -1,5 +1,8 @@
-const userRoutes = require('./userRoutes');
+const express = require("express");
+const router = express.Router();
 
-module.exports = {
-    userRoutes
-};
+const register = require('./register');
+
+router.use('/register', register);
+
+module.exports = router;

@@ -1,16 +1,19 @@
 const express = require('express');
-const userRoutes = require('./routes/userRoutes');
+const routes = require('./routes');
 const { errorHandler } = require('./middleware/errorMiddleware');
 const { notFound } = require('./middleware/notFoundMiddleware');
 
 const app = express();
+
+const { con } = require('./db/db'); // Import the database connection
+
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/users', userRoutes);
+app.use('/api', routes);
 
 // Handle 404
 app.use(notFound);
