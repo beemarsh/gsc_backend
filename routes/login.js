@@ -1,105 +1,139 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const { con } = require('../db/db'); // Import the database connection
-const { RouteError } = require('../middleware/errorMiddleware'); // Import RouteError
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const { pool } = require("../db/db"); // Import the connection pool
+const { RouteError } = require("../middleware/errorMiddleware"); // Import RouteError
 
-const secretKey = process.env.JWT_SECRET || 'your-secret-key';
-const refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
+const secretKey = process.env.JWT_SECRET || "your-secret-key";
+const refreshTokenSecret =
+  process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key";
+
+const refreshTokenExpiryDays = 30; // Set the refresh token expiry to 30 days
 
 function generateAccessToken(user) {
-    return jwt.sign({ userId: user.user_id, email: user.email }, secretKey, { expiresIn: '1d' });
+  return jwt.sign({ userId: user.user_id, email: user.email }, secretKey, {
+    expiresIn: "1d",
+  });
 }
 
 function generateRefreshToken(user) {
-    const refreshToken = crypto.randomBytes(64).toString('hex');
-    return refreshToken;
+  const refreshToken = crypto.randomBytes(64).toString("hex");
+  return refreshToken;
 }
 
 async function storeRefreshToken(userId, refreshToken) {
-    const sql = 'INSERT INTO refresh_tokens (user_id, token) VALUES (?, ?)';
-    return new Promise((resolve, reject) => {
-        con.query(sql, [userId, refreshToken], (err, result) => {
-            if (err) {
-                reject(new RouteError('Database error storing refresh token', 500, { dbError: err }));
-            } else {
-                resolve(result);
-            }
-        });
-    });
+    const sql = `
+    INSERT INTO refresh_tokens (user_id, token, expiry_date)
+    VALUES (?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+    token = VALUES(token),
+    expiry_date = VALUES(expiry_date);
+    `;
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + refreshTokenExpiryDays); // Add expiry days
+
+            await connection.execute(sql, [userId, refreshToken, expiryDate]);
+        } finally {
+            connection.release();
+        }
+    } catch (err) {
+        throw new RouteError(err, 500, 'Database error storing refresh token');
+    }
 }
 
-router.post('/', async (req, res, next) => {
-    
+router.post("/", async (req, res, next) => {
+  try {
+    // Validate input
+    validateInput(req.body?.email, req.body?.password);
+
+    const { email, password } = req.body;
+
+    // Retrieve user from database
+    const sql = "SELECT * FROM auth WHERE email = ?";
+
+    const connection = await pool.getConnection();
+
     try {
-        const { email, password } = req.body;
-        
-        // Validate input
-        const validationErrors = validateInput(email, password);
-        if (validationErrors.length > 0) {
-            return next(new RouteError('Validation error', 400, validationErrors));
-        }
+      const [results] = await connection.execute(sql, [email]);
 
-        // Retrieve user from database
-        const sql = 'SELECT * FROM auth WHERE email = ?';
-        con.query(sql, [email], async (err, results) => {
-            if (err) {
-                return next(new RouteError('Login failed: Database error', 500, { dbError: err }));
-            }
+      if (results.length === 0) {
+        throw new RouteError(
+          new Error("Invalid credentials"),
+          401,
+          "Login failed: Invalid credentials"
+        );
+      }
 
-            if (results.length === 0) {
-                return next(new RouteError('Login failed: Invalid credentials', 401));
-            }
+      const user = results[0];
 
-            const user = results[0];
+      // Compare passwords
+      const passwordMatch = await bcrypt.compare(password, user.password);
 
-            // Compare passwords
-            const passwordMatch = await bcrypt.compare(password, user.password);
-            if (!passwordMatch) {
-                return next(new RouteError('Login failed: Invalid credentials', 401));
-            }
+      if (!passwordMatch) {
+        throw new RouteError(
+          new Error("Invalid credentials"),
+          401,
+          "Login failed: Invalid credentials"
+        );
+      }
 
-            // Generate tokens
-            const accessToken = generateAccessToken(user);
-            const refreshToken = generateRefreshToken(user);
+      // Generate tokens
+      const accessToken = generateAccessToken(user);
+      const refreshToken = generateRefreshToken(user);
 
-            // Store refresh token in database
-            try {
-                await storeRefreshToken(user.user_id, refreshToken);
-            } catch (error) {
-                return next(error); // Pass RouteError from storeRefreshToken
-            }
+      // Store refresh token in database
+      await storeRefreshToken(user.user_id, refreshToken);
 
-            // Set refresh token as HttpOnly cookie
-            res.cookie('refreshToken', refreshToken, {
-                httpOnly: true,
-                secure: true, // Only send over HTTPS
-                sameSite: 'strict', // Prevent CSRF attacks
-                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-            });
+      // Set refresh token as HttpOnly cookie
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: true, // Only send over HTTPS
+        sameSite: "strict", // Prevent CSRF attacks
+        maxAge: refreshTokenExpiryDays * 24 * 60 * 60 * 1000, // 30 days
+      });
 
-            // Send access token in response
-            return res.status(200).json({ message: 'Login successful', accessToken: accessToken });
-        });
-    } catch (error) {
-        return next(error); // Pass RouteError to middleware
+      // Send access token in response
+      // Set access token as HttpOnly cookie
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: true, // Only send over HTTPS
+        sameSite: "strict", // Prevent CSRF attacks
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
+      });
+
+      // Send success message in response
+      return res.status(200).json({ message: "Login successful" });
+    } finally {
+      connection.release();
     }
+  } catch (error) {
+    return next(error); // Pass RouteError to middleware
+  }
 });
 
 function validateInput(email, password) {
-    const errors = [];
+  if (!email) {
+    throw new RouteError(
+      new Error("Please enter a valid email address"),
+      400,
+      "Please enter a valid email address"
+    );
+  }
 
-    if (!email) {
-        errors.push('Email is required');
-    }
+  if (!password) {
+    throw new RouteError(
+      new Error("Please enter a valid password"),
+      400,
+      "Please enter a valid password"
+    );
+  }
 
-    if (!password) {
-        errors.push('Password is required');
-    }
-
-    return errors;
+  return true;
 }
 
 module.exports = router;

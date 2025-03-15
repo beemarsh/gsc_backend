@@ -4,6 +4,7 @@ const bcrypt = require("bcrypt");
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../db/db"); // Import the connection pool
 const { RouteError } = require("../middleware/errorMiddleware"); // Import RouteError
+const validator = require("validator");
 
 // Registration route
 router.post(
