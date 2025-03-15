@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
 const { v4: uuidv4 } = require("uuid");
-const { con } = require("../db/db"); // Import the database connection
 const { pool } = require("../db/db"); // Import the connection pool
 const { RouteError } = require("../middleware/errorMiddleware"); // Import RouteError
 
@@ -15,7 +14,7 @@ router.post(
       const { name, email, password } = req.body;
 
       // Validate input
-      await validateInput(name, email, password);
+      validateInput(name, email, password);
 
       // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -49,6 +48,27 @@ function validateInput(name, email, password) {
       400,
       "Name must be a string with at least 2 characters"
     );
+  } else {
+    // Character whitelisting and length validation
+    const sanitizedName = validator.whitelist(name, "a-zA-Z0-9\\s"); // Allow alphanumeric and space
+
+    if (sanitizedName.length !== name.length) {
+      throw new RouteError(
+        new Error(
+          "Name contains invalid characters. Only alphanumeric characters and spaces are allowed."
+        ),
+        400,
+        "Name contains invalid characters. Only alphanumeric characters and spaces are allowed."
+      );
+    }
+
+    if (name.length > 20) {
+      new Error(
+        "Name cannot be longer than 20 characters",
+        400,
+        "Name cannot be longer than 20 characters"
+      );
+    }
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

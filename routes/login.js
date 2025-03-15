@@ -32,9 +32,10 @@ async function storeRefreshToken(userId, refreshToken) {
 }
 
 router.post('/', async (req, res, next) => {
-    const { email, password } = req.body;
-
+    
     try {
+        const { email, password } = req.body;
+        
         // Validate input
         const validationErrors = validateInput(email, password);
         if (validationErrors.length > 0) {
