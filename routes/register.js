@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require("bcrypt");
 const { v4: uuidv4 } = require("uuid");
 const { con } = require("../db/db"); // Import the database connection
+const { pool } = require("../db/db"); // Import the connection pool
 const { RouteError } = require("../middleware/errorMiddleware"); // Import RouteError
 
 // Registration route
@@ -14,29 +15,27 @@ router.post(
       const { name, email, password } = req.body;
 
       // Validate input
-      const validationErrors = validateInput(name, email, password);
-      if (validationErrors.length > 0) {
-        throw new RouteError(validationErrors, 400, "Validation error");
-      }
-
-      await validationResult(req);
+      await validateInput(name, email, password);
 
       // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10);
       const userId = uuidv4();
 
-      // Store the user in the database
-      const sql =
-        "INSERT INTO auth (user_id, name, email, password) VALUES (?, ?, ?, ?)";
-      con.query(sql, [userId, name, email, hashedPassword], (err, result) => {
-        if (err) {
-          throw new RouteError(err, 500, "Registration failed: Database error");
-        }
+      const connection = await pool.getConnection();
+
+      try {
+        // Store the user in the database
+        const sql =
+          "INSERT INTO auth (user_id, name, email, password) VALUES (?, ?, ?, ?)";
+        await connection.execute(sql, [userId, name, email, hashedPassword]);
 
         return res
           .status(201)
           .json({ message: "User registered successfully" });
-      });
+      } finally {
+        // Release the connection back to the pool
+        connection.release();
+      }
     } catch (error) {
       return next(error); // Pass error to middleware
     }

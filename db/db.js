@@ -1,20 +1,12 @@
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise'); // Use promise-based API for async/await
 require('dotenv').config(); // Load environment variables from .env file
 
-const con = mysql.createConnection({
-  host: process.env.DB_HOST ,  // Default to localhost if not set
-  user: process.env.DB_USER, // Default to yourusername if not set
-  password: process.env.DB_PASSWORD , // Default to yourpassword if not set
-  database: process.env.DB_DATABASE // Default to yourdatabase if not set
+const pool = mysql.createPool({
+  host: process.env.DB_HOST ,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD ,
+  database: process.env.DB_DATABASE,
+  connectionLimit: 10 // Adjust the connection limit as needed
 });
 
-con.connect(function(err) {
-  if (err) {
-    console.error('Database connection failed: ' + err.stack);
-    return;
-  }
-
-  console.log('Connected to database as id ' + con.threadId);
-});
-
-module.exports = { con };
+module.exports = { pool };
