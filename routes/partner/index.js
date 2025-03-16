@@ -4,7 +4,7 @@ const router = express.Router();
 const add_partner = require('./add');
 const edit_partner = require('./edit');
 const delete_partner = require('./delete');
-const get_partner = require('./getAll');
+const get_partner = require('./get');
 
 router.use('/add', add_partner);
 router.use('/edit', edit_partner);
