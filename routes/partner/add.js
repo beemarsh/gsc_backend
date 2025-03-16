@@ -17,6 +17,7 @@ router.post('/', verifyToken, async (req, res, next) => {
             notes
         } = req.body;
 
+console.log(req.body);
         // Validate input
         validatePartnerInput(organizationName, contactPerson, contactEmail, phoneNumber, address, type, notes);
 
@@ -49,6 +50,8 @@ router.post('/', verifyToken, async (req, res, next) => {
 });
 
 function validatePartnerInput(organizationName, contactPerson, contactEmail, phoneNumber, address, type, notes) {
+
+    console.log(organizationName);
     // Organization name validation
     if (!organizationName || typeof organizationName !== 'string' || organizationName.length < 2) {
         throw new RouteError(
@@ -86,8 +89,8 @@ function validatePartnerInput(organizationName, contactPerson, contactEmail, pho
     }
 
     // Address validation
-    const addressRegex = /^\d+\s+[A-Za-z0-9\s,.-]+$/;
-    if (!addressRegex.test(address)) {
+    const addressRegex = /^[A-Za-z0-9\s.,#-]+$/;
+        if (!addressRegex.test(address)) {
         throw new RouteError(
             new Error("Invalid address format. Must start with a number followed by street name"),
             400,

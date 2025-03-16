@@ -6,33 +6,10 @@ const { verifyToken } = require('../../middleware/verify');
 
 router.get('/', verifyToken, async (req, res, next) => {
     try {
-        const page = Math.max(1, parseInt(req.query.page) || 1);
-        const limit = 10;
-        const offset = (page - 1) * limit;
-
         const connection = await pool.getConnection();
-
         try {
-            // Get total count
-            const [countResult] = await connection.execute('SELECT COUNT(*) as total FROM partners');
-            const totalPartners = countResult[0].total;
-            const totalPages = Math.ceil(totalPartners / limit);
-
-            // Get paginated results
-            const [partners] = await connection.execute(
-                'SELECT * FROM partners LIMIT ? OFFSET ?',
-                [limit, offset]
-            );
-
-            return res.json({
-                partners,
-                pagination: {
-                    currentPage: page,
-                    totalPages,
-                    totalItems: totalPartners,
-                    itemsPerPage: limit
-                }
-            });
+            const [partners] = await connection.execute('SELECT * FROM partners');
+            return res.json({ partners });
         } finally {
             connection.release();
         }

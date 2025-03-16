@@ -20,7 +20,7 @@ router.delete('/', verifyToken, async (req, res, next) => {
         const connection = await pool.getConnection();
 
         try {
-            const sql = 'DELETE FROM partners WHERE id = ?';
+            const sql = 'DELETE FROM partners WHERE partner_id = ?';
             const [result] = await connection.execute(sql, [id]);
 
             if (result.affectedRows === 0) {

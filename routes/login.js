@@ -6,10 +6,7 @@ const crypto = require("crypto");
 const { pool } = require("../db/db"); // Import the connection pool
 const { RouteError } = require("../middleware/errorMiddleware"); // Import RouteError
 
-const secretKey = process.env.JWT_SECRET || "your-secret-key";
-const refreshTokenSecret =
-  process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key";
-
+const secretKey = process.env.JWT_SECRET;
 const refreshTokenExpiryDays = 30; // Set the refresh token expiry to 30 days
 
 function generateAccessToken(user) {

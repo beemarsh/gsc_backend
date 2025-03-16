@@ -42,7 +42,7 @@ router.put('/', verifyToken, async (req, res, next) => {
                     address = ?, 
                     type = ?, 
                     notes = ?
-                WHERE id = ?
+                WHERE partner_id = ?
             `;
             const [result] = await connection.execute(sql, [
                 organizationName,
@@ -110,7 +110,7 @@ function validatePartnerInput(organizationName, contactPerson, contactEmail, pho
     }
 
     // Address validation
-    const addressRegex = /^\d+\s+[A-Za-z0-9\s,.-]+$/;
+    const addressRegex = /^[A-Za-z0-9\s.,#-]+$/;
     if (!addressRegex.test(address)) {
         throw new RouteError(
             new Error("Invalid address format. Must start with a number followed by street name"),
