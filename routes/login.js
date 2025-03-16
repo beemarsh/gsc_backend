@@ -93,7 +93,7 @@ router.post("/", async (req, res, next) => {
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: true, // Only send over HTTPS
-        sameSite: "strict", // Prevent CSRF attacks
+        sameSite: "None", // Prevent CSRF attacks
         maxAge: refreshTokenExpiryDays * 24 * 60 * 60 * 1000, // 30 days
       });
 
@@ -102,7 +102,7 @@ router.post("/", async (req, res, next) => {
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
         secure: true, // Only send over HTTPS
-        sameSite: "strict", // Prevent CSRF attacks
+        sameSite: "None", // Prevent CSRF attacks
         maxAge: 24 * 60 * 60 * 1000, // 1 day
       });
 

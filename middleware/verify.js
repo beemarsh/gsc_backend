@@ -22,7 +22,7 @@ async function storeRefreshToken(userId, refreshToken) {
     con.query(sql, [userId, refreshToken], (err, result) => {
       if (err) {
         reject(
-          new RouteError(err, 500, "Database error storing refresh token")
+          new RouteError(err, 401, "Database error storing refresh token")
         );
       } else {
         resolve(result);
@@ -32,10 +32,26 @@ async function storeRefreshToken(userId, refreshToken) {
 }
 
 const verifyToken = async (req, res, next) => {
-  const accessToken = req.headers.authorization?.split(" ")[1]; // Assuming token is in Authorization header
-  const refreshToken = req.cookies.refreshToken;
 
+  console.log(req.cookies);
+  
+  if(!req.cookies?.refreshToken){
+    return next(
+      new RouteError(new Error("No Refresh Tokens"), 401, "Please log in again. ")
+    ); 
+  }
+
+  if(!req.cookies?.accessToken){
+    return next(
+      new RouteError(new Error("No Access Tokens"), 401, "Please log in. ")
+    ); 
+  }
+
+  const accessToken = req.cookies.accessToken; // Assuming token is in Authorization header
+  const refreshToken = req.cookies.refreshToken;
   try {
+
+
     if (!accessToken) {
       throw RouteError(
         new Error("Unauthorized: Access token missing"),
@@ -57,7 +73,7 @@ const verifyToken = async (req, res, next) => {
         con.query(sql, [refreshToken], async (err, results) => {
           if (err) {
             return next(
-              new RouteError(err, 500, "Database error verifying refresh token")
+              new RouteError(err, 401, "Database error verifying refresh token")
             );
           }
 
@@ -73,7 +89,7 @@ const verifyToken = async (req, res, next) => {
           con.query(userSql, [userId], async (err, userResults) => {
             if (err) {
               return next(
-                new RouteError(err, 500, "Database error fetching user details")
+                new RouteError(err, 401, "Database error fetching user details")
               );
             }
 
