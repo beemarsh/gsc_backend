@@ -81,14 +81,15 @@ function validateInput(name, email, password) {
     );
   }
 
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\s\S]).{8,}$/;
+
   if (!passwordRegex.test(password)) {
     throw new RouteError(
       new Error(
-        "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase"
+        "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase and a sepcial character"
       ),
       400,
-      "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase"
+      "An uppercase letter, a lowercase and a special character is required for passwords."
     );
   }
 

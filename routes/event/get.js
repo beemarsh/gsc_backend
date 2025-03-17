@@ -4,19 +4,6 @@ const { pool } = require('../../db/db');
 const { RouteError } = require('../../middleware/errorMiddleware');
 const { verifyToken } = require('../../middleware/verify');
 
-router.get('/', verifyToken, async (req, res, next) => {
-    try {
-        const connection = await pool.getConnection();
-        try {
-            const [events] = await connection.execute('SELECT * FROM events ORDER BY event_datetime');
-            return res.json({ events });
-        } finally {
-            connection.release();
-        }
-    } catch (error) {
-        return next(error);
-    }
-});
 
 router.get('/:id', verifyToken, async (req, res, next) => {
     try {
@@ -47,6 +34,20 @@ router.get('/:id', verifyToken, async (req, res, next) => {
             }
 
             return res.json(events[0]);
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        return next(error);
+    }
+});
+
+router.get('/', verifyToken, async (req, res, next) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [events] = await connection.execute('SELECT * FROM events ORDER BY event_datetime');
+            return res.json({ events });
         } finally {
             connection.release();
         }

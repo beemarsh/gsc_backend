@@ -3,6 +3,7 @@ const router = express.Router();
 const { pool } = require('../../db/db');
 const { RouteError } = require('../../middleware/errorMiddleware');
 const { verifyToken } = require('../../middleware/verify');
+const { validateEventInput } = require('../../utils/validation');
 
 router.put('/', verifyToken, async (req, res, next) => {
     try {
@@ -25,7 +26,7 @@ router.put('/', verifyToken, async (req, res, next) => {
         }
 
         // Validate input
-        validateEventInput(eventName, eventDateTime, organizer, address, notes);
+        validateEventInput(req.body);
 
         const connection = await pool.getConnection();
 
